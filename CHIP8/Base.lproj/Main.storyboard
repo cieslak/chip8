@@ -23,25 +23,144 @@
                                     <constraint firstAttribute="width" secondItem="zjG-6i-Qx6" secondAttribute="height" multiplier="2:1" id="M4k-oS-WVI"/>
                                 </constraints>
                             </view>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="200-cf-5Ux">
+                                <rect key="frame" x="312.33333333333331" y="773.66666666666663" width="64.666666666666686" height="46.333333333333371"/>
+                                <state key="normal" title="Button"/>
+                                <buttonConfiguration key="configuration" style="plain" image="gear.circle.fill" catalog="system">
+                                    <preferredSymbolConfiguration key="preferredSymbolConfigurationForImage" configurationType="pointSize" pointSize="27"/>
+                                </buttonConfiguration>
+                                <connections>
+                                    <segue destination="PoO-AX-Mrl" kind="presentation" id="9OF-b5-MFf"/>
+                                </connections>
+                            </button>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Uzd-po-De5">
+                                <rect key="frame" x="16" y="773.66666666666663" width="64.666666666666671" height="46.333333333333371"/>
+                                <state key="normal" title="Button"/>
+                                <buttonConfiguration key="configuration" style="plain" image="play.circle.fill" catalog="system">
+                                    <preferredSymbolConfiguration key="preferredSymbolConfigurationForImage" configurationType="pointSize" pointSize="27"/>
+                                </buttonConfiguration>
+                                <connections>
+                                    <action selector="runTappedWithSender:" destination="BYZ-38-t0r" eventType="touchDown" id="Dju-Vw-7iA"/>
+                                </connections>
+                            </button>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="lSl-y6-9sa">
+                                <rect key="frame" x="164.33333333333334" y="773.66666666666663" width="64.666666666666657" height="46.333333333333371"/>
+                                <state key="normal" title="Button"/>
+                                <buttonConfiguration key="configuration" style="plain" image="document.circle.fill" catalog="system">
+                                    <preferredSymbolConfiguration key="preferredSymbolConfigurationForImage" configurationType="pointSize" pointSize="27"/>
+                                </buttonConfiguration>
+                                <connections>
+                                    <action selector="loadDocumentWithSender:" destination="BYZ-38-t0r" eventType="touchDown" id="s5U-5D-kAL"/>
+                                </connections>
+                            </button>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                         <constraints>
+                            <constraint firstItem="lSl-y6-9sa" firstAttribute="centerY" secondItem="Uzd-po-De5" secondAttribute="centerY" id="147-Do-MEN"/>
+                            <constraint firstAttribute="bottom" secondItem="200-cf-5Ux" secondAttribute="bottom" constant="32" id="1WU-mH-fEz"/>
                             <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="zjG-6i-Qx6" secondAttribute="trailing" constant="16" id="6E0-sG-2VX"/>
+                            <constraint firstItem="Uzd-po-De5" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="16" id="FWu-0Y-Sde"/>
+                            <constraint firstItem="Uzd-po-De5" firstAttribute="centerY" secondItem="200-cf-5Ux" secondAttribute="centerY" id="X8d-LC-kCy"/>
+                            <constraint firstItem="200-cf-5Ux" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="8" id="edp-SG-pM4"/>
                             <constraint firstItem="zjG-6i-Qx6" firstAttribute="leading" secondItem="6Tk-OE-BBY" secondAttribute="leading" constant="16" id="q6T-W9-tF6"/>
+                            <constraint firstItem="lSl-y6-9sa" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="qLq-BX-KzM"/>
                             <constraint firstItem="zjG-6i-Qx6" firstAttribute="top" secondItem="6Tk-OE-BBY" secondAttribute="top" constant="16" id="wW4-U3-5Yn"/>
+                            <constraint firstItem="6Tk-OE-BBY" firstAttribute="trailing" secondItem="200-cf-5Ux" secondAttribute="trailing" constant="16" id="yqX-Yw-3ph"/>
                         </constraints>
                     </view>
                     <connections>
                         <outlet property="display" destination="zjG-6i-Qx6" id="DkS-KC-deF"/>
+                        <outlet property="runButton" destination="Uzd-po-De5" id="6rg-6X-D5P"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
             </objects>
             <point key="canvasLocation" x="-28" y="56"/>
         </scene>
+        <!--Navigation Controller-->
+        <scene sceneID="ngs-O7-8WR">
+            <objects>
+                <navigationController id="PoO-AX-Mrl" sceneMemberID="viewController">
+                    <navigationBar key="navigationBar" contentMode="scaleToFill" id="b46-iA-0hK">
+                        <rect key="frame" x="0.0" y="16" width="393" height="54"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </navigationBar>
+                    <connections>
+                        <segue destination="h6j-Jo-SyK" kind="relationship" relationship="rootViewController" id="pse-qM-scy"/>
+                    </connections>
+                </navigationController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="VTq-dG-XeG" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="785" y="56"/>
+        </scene>
+        <!--Settings-->
+        <scene sceneID="eUu-4Y-Uo6">
+            <objects>
+                <viewController id="h6j-Jo-SyK" customClass="SettingsViewController" customModule="CHIP8" customModuleProvider="target" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="xCT-ef-jkc">
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="793"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Increment I Quirk" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="tWG-dd-fiy">
+                                <rect key="frame" x="36" y="106" width="131" height="21"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Shift Vx/Vy Quirk" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="VPO-I4-2ot">
+                                <rect key="frame" x="36" y="163" width="129" height="21"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <switch opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" on="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Vzv-YP-TEi">
+                                <rect key="frame" x="289" y="102" width="61" height="28"/>
+                                <connections>
+                                    <action selector="iSwitchToggledWithSender:" destination="h6j-Jo-SyK" eventType="valueChanged" id="kge-pL-gD0"/>
+                                </connections>
+                            </switch>
+                            <switch opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" contentHorizontalAlignment="center" contentVerticalAlignment="center" on="YES" translatesAutoresizingMaskIntoConstraints="NO" id="5Ia-TO-dC5">
+                                <rect key="frame" x="296" y="159.66666666666666" width="63" height="28"/>
+                                <connections>
+                                    <action selector="vxSwitchToggledWithSender:" destination="h6j-Jo-SyK" eventType="valueChanged" id="FT8-pe-w2Y"/>
+                                </connections>
+                            </switch>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="fQr-01-VR6"/>
+                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                        <constraints>
+                            <constraint firstItem="VPO-I4-2ot" firstAttribute="leading" secondItem="fQr-01-VR6" secondAttribute="leading" constant="36" id="7hB-e2-0oI"/>
+                            <constraint firstItem="fQr-01-VR6" firstAttribute="trailing" secondItem="5Ia-TO-dC5" secondAttribute="trailing" constant="36" id="9J3-Bf-KJ4"/>
+                            <constraint firstItem="tWG-dd-fiy" firstAttribute="top" secondItem="fQr-01-VR6" secondAttribute="top" constant="36" id="YHm-6G-3Sx"/>
+                            <constraint firstItem="tWG-dd-fiy" firstAttribute="leading" secondItem="fQr-01-VR6" secondAttribute="leading" constant="36" id="Zsw-tx-Iqs"/>
+                            <constraint firstItem="fQr-01-VR6" firstAttribute="trailing" secondItem="Vzv-YP-TEi" secondAttribute="trailing" constant="36" id="c42-pm-4Xc"/>
+                            <constraint firstItem="VPO-I4-2ot" firstAttribute="top" secondItem="tWG-dd-fiy" secondAttribute="bottom" constant="36" id="jNQ-yx-EMy"/>
+                            <constraint firstItem="Vzv-YP-TEi" firstAttribute="centerY" secondItem="tWG-dd-fiy" secondAttribute="centerY" id="sZT-QR-FIk"/>
+                            <constraint firstItem="5Ia-TO-dC5" firstAttribute="centerY" secondItem="VPO-I4-2ot" secondAttribute="centerY" id="sc7-Fe-m9c"/>
+                        </constraints>
+                    </view>
+                    <navigationItem key="navigationItem" title="Settings" id="qsT-B4-ad0">
+                        <barButtonItem key="rightBarButtonItem" title="Exit" id="tgr-05-eIZ">
+                            <connections>
+                                <action selector="exitTappedWithSender:" destination="h6j-Jo-SyK" id="iXR-Bw-Bx2"/>
+                            </connections>
+                        </barButtonItem>
+                    </navigationItem>
+                    <connections>
+                        <outlet property="iSwitch" destination="Vzv-YP-TEi" id="gSq-14-kbz"/>
+                        <outlet property="vxSwitch" destination="5Ia-TO-dC5" id="DGL-gG-cRl"/>
+                    </connections>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="cN5-IE-oGd" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="1550" y="56"/>
+        </scene>
     </scenes>
     <resources>
+        <image name="document.circle.fill" catalog="system" width="128" height="123"/>
+        <image name="gear.circle.fill" catalog="system" width="128" height="123"/>
+        <image name="play.circle.fill" catalog="system" width="128" height="123"/>
         <systemColor name="systemBackgroundColor">
             <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
         </systemColor>

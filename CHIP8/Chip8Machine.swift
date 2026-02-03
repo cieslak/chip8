@@ -12,10 +12,21 @@ protocol Chip8DisplayDelegate: AnyObject {
     func update(video: [UInt8])
 }
 
+protocol Chip8Delegate: AnyObject {
+    func loadStatusChanged()
+}
+
 class Chip8Machine {
+    
+    enum LoadError: Error {
+        case fileTooLarge
+    }
+    
     weak var display: Chip8DisplayDelegate?
-    private var shiftVXVY = false
-    private var incrementI = false
+    weak var delegate: Chip8Delegate?
+    var shiftVXVY = false
+    var incrementI = false
+    var didLoad = false
     private var registers = [UInt8](repeating: 0, count: 16)
     private var pc: UInt16 = 0
     private var memory = [UInt8](repeating: 0, count: 4096)
@@ -62,14 +73,12 @@ class Chip8Machine {
     
     init() {
         self.toneGenerator = try? ToneGenerator()
-        let url = Bundle.main.url(forResource: "c8_test", withExtension: "ch8")!
-        try! load(url: url)
         self.pc = UInt16(startAddress)
     }
     
     func reset() {
         registers = [UInt8](repeating: 0, count: 16)
-        pc = 0
+        pc = UInt16(startAddress)
         memory = [UInt8](repeating: 0, count: 4096)
         i = 0
         stack = [UInt16](repeating: 0, count: 16)
@@ -79,16 +88,28 @@ class Chip8Machine {
         delayTimer = 0
         soundTimer = 0
         memory.replaceSubrange(0x50...0x9f, with: font)
+        didLoad = false
     }
     
     func load(url: URL) throws {
+        defer { delegate?.loadStatusChanged() }
+        stop()
+        reset()
+        display?.update(video: video)
+        didLoad = false
+        delegate?.loadStatusChanged()
         let data = try Data(contentsOf: url)
         var bytes = Array<UInt8>(repeating: 0, count: data.count / MemoryLayout<UInt8>.stride)
+        guard bytes.count < 4096 - 0x200 else {
+            throw Chip8Machine.LoadError.fileTooLarge
+        }
         _ = bytes.withUnsafeMutableBytes { data.copyBytes(to: $0) }
         self.memory.replaceSubrange(startAddress..<startAddress + bytes.count, with: bytes)
+        didLoad = true
     }
     
     func start() {
+        if !didLoad { return }
         instructionTimer = DispatchSource.makeTimerSource(queue: instructionQueue)
         instructionTimer?.schedule(deadline: .now(), repeating: .milliseconds(2))
         instructionTimer?.setEventHandler {
