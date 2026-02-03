@@ -9,8 +9,8 @@ final class ToneGenerator {
 
     var frequency: Float = 600.0
     var amplitude: Float = 0.2   // 0.0 ... ~1.0 (keep modest to avoid clipping)
-
-    func start() throws {
+    
+    init() throws {
         let session = AVAudioSession.sharedInstance()
         try session.setCategory(.playback, mode: .default, options: [])
         try session.setActive(true)
@@ -55,18 +55,13 @@ final class ToneGenerator {
         sourceNode = node
         engine.attach(node)
         engine.connect(node, to: output, format: monoFormat)
-
+    }
+    
+    func start() throws {
         try engine.start()
     }
 
     func stop() {
         engine.stop()
-        if let node = sourceNode {
-            engine.disconnectNodeInput(engine.outputNode)
-            engine.detach(node)
-        }
-        sourceNode = nil
-        phase = 0
-        try? AVAudioSession.sharedInstance().setActive(false)
     }
 }

@@ -9,13 +9,13 @@ import UIKit
 
 class ViewController: UIViewController {
 
-    let c = Chip8Machine()
+    let chip8 = Chip8Machine()
     @IBOutlet var display: Chip8DisplayView!
     var buttons: [UIButton] =  []
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        c.display = display
+        chip8.display = display
         // Do any additional setup after loading the view.
         for i in [1, 2, 3, 12, 4, 5, 6, 13, 7, 8, 9, 14, 10, 0, 11, 15] {
             let button = UIButton(type: .roundedRect)
@@ -42,16 +42,16 @@ class ViewController: UIViewController {
     }
     
     @objc func buttonDown(sender: UIButton) {
-        c.keyboardBuffer[sender.tag] = true
+        chip8.keyboard[sender.tag] = true
     }
     
     @objc func buttonUp(sender: UIButton) {
-        c.keyboardBuffer[sender.tag] = false
+        chip8.keyboard[sender.tag] = false
     }
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        c.start()
+        chip8.start()
     }
 }
 
