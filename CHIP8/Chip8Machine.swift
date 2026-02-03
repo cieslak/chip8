@@ -14,18 +14,18 @@ protocol Chip8DisplayDelegate: AnyObject {
 
 class Chip8Machine {
     weak var display: Chip8DisplayDelegate?
-    var shiftVXVY = false
-    var incrementI = false
-    var registers = [UInt8](repeating: 0, count: 16)
-    var pc: UInt16 = 0
-    var memory = [UInt8](repeating: 0, count: 4096)
-    var i: UInt16 = 0
-    var stack = [UInt16](repeating: 0, count: 16)
-    var sp: UInt8 = 0
-    var video = [UInt8](repeating: 0, count: 64 * 32)
-    var opcode: UInt16 = 0
-    var delayTimer: UInt8 = 0
-    var soundTimer: UInt8 = 0 {
+    private var shiftVXVY = false
+    private var incrementI = false
+    private var registers = [UInt8](repeating: 0, count: 16)
+    private var pc: UInt16 = 0
+    private var memory = [UInt8](repeating: 0, count: 4096)
+    private var i: UInt16 = 0
+    private var stack = [UInt16](repeating: 0, count: 16)
+    private var sp: UInt8 = 0
+    private var video = [UInt8](repeating: 0, count: 64 * 32)
+    private var opcode: UInt16 = 0
+    private var delayTimer: UInt8 = 0
+    private var soundTimer: UInt8 = 0 {
         willSet {
             if soundTimer == 0 && newValue > 0 {
                 try? toneGenerator?.start()
@@ -34,9 +34,9 @@ class Chip8Machine {
             }
         }
     }
-    var keyboard = [Bool](repeating: false, count: 16)
-    var keyDown = false
-    let font: [UInt8] = [
+    private var keyboard = [Bool](repeating: false, count: 16)
+    private var keyDown = false
+    private let font: [UInt8] = [
         0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
         0x20, 0x60, 0x20, 0x20, 0x70, // 1
         0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
@@ -54,15 +54,15 @@ class Chip8Machine {
         0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
         0xF0, 0x80, 0xF0, 0x80, 0x80  // F
     ]
-    let startAddress = 0x200
-    let instructionQueue = DispatchQueue(label: "com.chip8.cpu")
-    var instructionTimer: DispatchSourceTimer?
-    var displayLink: CADisplayLink?
-    let toneGenerator: ToneGenerator?
+    private let startAddress = 0x200
+    private let instructionQueue = DispatchQueue(label: "com.chip8.cpu")
+    private var instructionTimer: DispatchSourceTimer?
+    private var displayLink: CADisplayLink?
+    private let toneGenerator: ToneGenerator?
     
     init() {
         self.toneGenerator = try? ToneGenerator()
-        let url = Bundle.main.url(forResource: "6-keypad", withExtension: "ch8")!
+        let url = Bundle.main.url(forResource: "c8_test", withExtension: "ch8")!
         try! load(url: url)
         self.pc = UInt16(startAddress)
     }
@@ -98,16 +98,6 @@ class Chip8Machine {
         createDisplayLink()
     }
     
-    func createDisplayLink() {
-        displayLink = CADisplayLink(target: self, selector: #selector(updateUI))
-        displayLink?.add(to: .current, forMode: .default)
-    }
-    
-    @objc func updateUI(displayLink: CADisplayLink) {
-        self.display?.update(video: self.video)
-        self.updateTimers()
-    }
-    
     func stop() {
         instructionTimer?.cancel()
         instructionTimer = nil
@@ -116,7 +106,24 @@ class Chip8Machine {
         reset()
     }
     
-    func updateTimers() {
+    func set(key: Int, state: Bool) {
+        instructionQueue.async {
+            self.keyboard[key] = state
+        }
+    }
+    
+    private func createDisplayLink() {
+        displayLink = CADisplayLink(target: self, selector: #selector(updateUI))
+        displayLink?.add(to: .current, forMode: .default)
+    }
+    
+    @objc private func updateUI(displayLink: CADisplayLink) {
+        self.display?.update(video: self.video)
+        self.updateTimers()
+    }
+    
+    
+    private func updateTimers() {
         if soundTimer > 0 {
             soundTimer = soundTimer - 1
         }
@@ -125,32 +132,32 @@ class Chip8Machine {
         }
     }
     
-    func randomByte() -> UInt8 {
+    private func randomByte() -> UInt8 {
         return UInt8.random(in: 0...255)
     }
     
-    func op00E0() {
+    private func op00E0() {
         video = [UInt8](repeating: 0, count: 64 * 32)
     }
     
-    func op00EE() {
+    private func op00EE() {
         sp = sp - 1
         pc = stack[Int(sp)]
     }
     
-    func op1nnn() {
+    private func op1nnn() {
         //print("loading opcode \(String(opcode, radix: 16)) jump to \(String(opcode & 0x0fff, radix: 16))")
         pc = opcode & 0x0fff
     }
     
-    func op2nnn() {
+    private func op2nnn() {
         let address = opcode & 0x0fff
         stack[Int(sp)] = pc
         sp = sp + 1
         pc = address
     }
     
-    func op3xkk() {
+    private func op3xkk() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let byte = opcode & 0x00FF
         if registers[vx] == byte {
@@ -158,7 +165,7 @@ class Chip8Machine {
         }
     }
     
-    func op4xkk() {
+    private func op4xkk() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let byte = opcode & 0x00FF
         if registers[vx] != byte {
@@ -166,7 +173,7 @@ class Chip8Machine {
         }
     }
     
-    func op5xy0() {
+    private func op5xy0() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let vy = Int((opcode & 0x00F0) >> 4)
         if registers[vx] == registers[vy] {
@@ -174,47 +181,47 @@ class Chip8Machine {
         }
     }
     
-    func op6xkk() {
+    private func op6xkk() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let byte = opcode & 0x00FF
         //print("loading opcode \(String(opcode, radix: 16)) \(String(byte, radix: 16)) into vx \(vx)")
         registers[vx] = UInt8(byte)
     }
     
-    func op7xkk() {
+    private func op7xkk() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let byte = opcode & 0x00FF
         registers[vx] = registers[vx] &+ UInt8(byte)
     }
     
-    func op8xy0() {
+    private func op8xy0() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let vy = Int((opcode & 0x00F0) >> 4)
         registers[vx] = registers[vy]
     }
     
-    func op8xy1() {
+    private func op8xy1() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let vy = Int((opcode & 0x00F0) >> 4)
         registers[vx] |= registers[vy]
         registers[0xF] = 0
     }
     
-    func op8xy2() {
+    private func op8xy2() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let vy = Int((opcode & 0x00F0) >> 4)
         registers[vx] &= registers[vy]
         registers[0xF] = 0
     }
     
-    func op8xy3() {
+    private func op8xy3() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let vy = Int((opcode & 0x00F0) >> 4)
         registers[vx] ^= registers[vy]
         registers[0xF] = 0
     }
     
-    func op8xy4() {
+    private func op8xy4() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let vy = Int((opcode & 0x00F0) >> 4)
         let (result, overflow) = registers[vx].addingReportingOverflow(registers[vy])
@@ -222,7 +229,7 @@ class Chip8Machine {
         registers[0xF] = overflow ? 1 : 0
     }
     
-    func op8xy5() {
+    private func op8xy5() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let vy = Int((opcode & 0x00F0) >> 4)
         let (result, overflow) = registers[vx].subtractingReportingOverflow(registers[vy])
@@ -230,7 +237,7 @@ class Chip8Machine {
         registers[0xF] = overflow ? 0 : 1
     }
     
-    func op8xy6() {
+    private func op8xy6() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let vy = Int((opcode & 0x00F0) >> 4)
         if shiftVXVY {
@@ -241,7 +248,7 @@ class Chip8Machine {
         registers[0xF] = flag
     }
     
-    func op8xy7() {
+    private func op8xy7() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let vy = Int((opcode & 0x00F0) >> 4)
         registers[vx] = registers[Int(vy)] &- registers[vx]
@@ -252,7 +259,7 @@ class Chip8Machine {
         }
     }
     
-    func op8xye() {
+    private func op8xye() {
         let vx = Int((opcode & 0x0F00)) >> 8
         let vy = Int((opcode & 0x00F0) >> 4)
         if shiftVXVY {
@@ -263,7 +270,7 @@ class Chip8Machine {
         registers[0xF] = flag
     }
     
-    func op9xy0() {
+    private func op9xy0() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let vy = Int((opcode & 0x00F0) >> 4)
         if registers[vx] != registers[vy] {
@@ -271,23 +278,23 @@ class Chip8Machine {
         }
     }
     
-    func opAnnn() {
+    private func opAnnn() {
         //print("opcode \(String(opcode, radix: 16)) loading \(String(opcode & 0x0fff, radix: 16)) into i")
         i = opcode & 0x0fff
     }
     
-    func opBnnn() {
+    private func opBnnn() {
         let address = opcode & 0x0fff
         pc = UInt16(registers[0]) + address
     }
     
-    func opCxkk() {
+    private func opCxkk() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let byte = opcode & 0x00FF
         registers[vx] = randomByte() & UInt8(byte)
     }
     
-    func opDxyn() {
+    private func opDxyn() {
         let x = Int((opcode & 0x0F00)) >> 8
         let y = Int((opcode & 0x00F0)) >> 4
         let height = Int(opcode & 0x000F)
@@ -316,7 +323,7 @@ class Chip8Machine {
         }
     }
     
-    func opEx9e() {
+    private func opEx9e() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let key = Int(registers[vx])
         if keyboard[key] == true {
@@ -324,7 +331,7 @@ class Chip8Machine {
         }
     }
     
-    func opExa1() {
+    private func opExa1() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let key = Int(registers[vx])
         if keyboard[key] == false {
@@ -332,12 +339,12 @@ class Chip8Machine {
         }
     }
     
-    func opFx07() {
+    private func opFx07() {
         let vx = Int((opcode & 0x0F00) >> 8)
         registers[vx] = delayTimer
     }
     
-    func opFx0a() {
+    private func opFx0a() {
         let vx = Int((opcode & 0x0F00) >> 8)
         if let idx = keyboard.firstIndex(of: true) {
             keyDown = true
@@ -352,28 +359,28 @@ class Chip8Machine {
         }
     }
     
-    func opFx15() {
+    private func opFx15() {
         let vx = Int((opcode & 0x0F00) >> 8)
         delayTimer = registers[vx]
     }
     
-    func opFx18() {
+    private func opFx18() {
         let vx = Int((opcode & 0x0F00) >> 8)
         soundTimer = registers[vx]
     }
     
-    func opFx1E() {
+    private func opFx1E() {
         let vx = Int((opcode & 0x0F00) >> 8)
         i = i + UInt16(registers[vx])
     }
     
-    func opFx29() {
+    private func opFx29() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let digit = registers[vx]
         i = 0x50 + UInt16(5 * digit)
     }
     
-    func opFx33() {
+    private func opFx33() {
         let vx = Int((opcode & 0x0F00) >> 8)
         var value = registers[vx]
         // Ones-place
@@ -386,7 +393,7 @@ class Chip8Machine {
         memory[Int(i)] = value % 10;
     }
     
-    func opFx55() {
+    private func opFx55() {
         let vx = Int((opcode & 0x0F00) >> 8)
         for j in 0...vx {
             memory[Int(i) + j] = registers[j]
@@ -396,7 +403,7 @@ class Chip8Machine {
         }
     }
     
-    func opFx65() {
+    private func opFx65() {
         let vx = Int((opcode & 0x0F00) >> 8)
         for j in 0...vx {
             registers[j] = memory[Int(i) + j]
@@ -406,7 +413,7 @@ class Chip8Machine {
         }
     }
 
-    func printScreen() {
+    private func printScreen() {
         for (idx, pixel) in video.enumerated() {
             if pixel == 1 {
                 print("*", terminator: "")
@@ -419,13 +426,7 @@ class Chip8Machine {
         }
     }
     
-    func set(key: Int, state: Bool) {
-        instructionQueue.async {
-            self.keyboard[key] = state
-        }
-    }
-    
-    func step() {
+    private func step() {
         let highByte = UInt16(memory[Int(pc)])
         let lowByte = UInt16(memory[Int(pc + 1)])
         opcode = UInt16(highByte) << 8 | lowByte

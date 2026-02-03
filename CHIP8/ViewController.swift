@@ -19,11 +19,12 @@ class ViewController: UIViewController {
         // Do any additional setup after loading the view.
         for i in [1, 2, 3, 12, 4, 5, 6, 13, 7, 8, 9, 14, 10, 0, 11, 15] {
             let button = UIButton(type: .roundedRect)
-            button.setTitle(String(i, radix: 16), for: .normal)
+            button.setTitle(String(i, radix: 16).uppercased(), for: .normal)
             button.tag = i
             button.titleLabel?.font = UIFont.boldSystemFont(ofSize: 32)
             button.addTarget(self, action: #selector(buttonDown), for: .touchDown)
             button.addTarget(self, action: #selector(buttonUp), for: [.touchUpInside, .touchDragOutside])
+            button.tintColor = .black
             view.addSubview(button)
             buttons.append(button)
         }
