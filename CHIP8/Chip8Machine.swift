@@ -14,8 +14,8 @@ protocol Chip8DisplayDelegate: AnyObject {
 
 class Chip8Machine {
     weak var display: Chip8DisplayDelegate?
-    var shiftVXVY = true
-    var incrementI = true
+    var shiftVXVY = false
+    var incrementI = false
     var registers = [UInt8](repeating: 0, count: 16)
     var pc: UInt16 = 0
     var memory = [UInt8](repeating: 0, count: 4096)
@@ -35,6 +35,7 @@ class Chip8Machine {
         }
     }
     var keyboard = [Bool](repeating: false, count: 16)
+    var keyDown = false
     let font: [UInt8] = [
         0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
         0x20, 0x60, 0x20, 0x20, 0x70, // 1
@@ -61,7 +62,7 @@ class Chip8Machine {
     
     init() {
         self.toneGenerator = try? ToneGenerator()
-        let url = Bundle.main.url(forResource: "4-flags", withExtension: "ch8")!
+        let url = Bundle.main.url(forResource: "6-keypad", withExtension: "ch8")!
         try! load(url: url)
         self.pc = UInt16(startAddress)
     }
@@ -339,12 +340,15 @@ class Chip8Machine {
     func opFx0a() {
         let vx = Int((opcode & 0x0F00) >> 8)
         if let idx = keyboard.firstIndex(of: true) {
+            keyDown = true
             registers[vx] = UInt8(idx)
-            while keyboard[idx] == true {
-                // NOP
-            }
-        } else {
             pc = pc - 2
+        } else {
+            if keyDown {
+                keyDown = false
+            } else {
+                pc = pc - 2
+            }
         }
     }
     
@@ -412,6 +416,12 @@ class Chip8Machine {
             if idx != 0 && idx % 64 == 0 {
                 print("")
             }
+        }
+    }
+    
+    func set(key: Int, state: Bool) {
+        instructionQueue.async {
+            self.keyboard[key] = state
         }
     }
     

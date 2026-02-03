@@ -42,11 +42,11 @@ class ViewController: UIViewController {
     }
     
     @objc func buttonDown(sender: UIButton) {
-        chip8.keyboard[sender.tag] = true
+        chip8.set(key: sender.tag, state: true)
     }
     
     @objc func buttonUp(sender: UIButton) {
-        chip8.keyboard[sender.tag] = false
+        chip8.set(key: sender.tag, state: false)
     }
 
     override func viewDidAppear(_ animated: Bool) {
