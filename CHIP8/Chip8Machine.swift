@@ -62,7 +62,7 @@ class Chip8Machine {
         0xF0, 0x80, 0xF0, 0x80, 0x80  // F
     ]
     private let startAddress = 0x200
-    private let instructionQueue = DispatchQueue(label: "com.chip8.cpu")
+    private let instructionQueue = DispatchQueue(label: "com.chip8.cpu", qos: .userInteractive)
     private var instructionTimer: DispatchSourceTimer?
     private var displayLink: CADisplayLink?
     private let toneGenerator: ToneGenerator?
