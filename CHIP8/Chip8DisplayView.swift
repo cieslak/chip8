@@ -19,16 +19,13 @@ class Chip8DisplayView: UIView, Chip8DisplayDelegate {
         let backgroundColor: UIColor
         let foregroundColor: UIColor
         let shadowColor: UIColor?
+        var shadowBlur: CGFloat = 3.0
+        var shadowOffset = CGSize(width: 2, height: 2)
     }
 
     var selectedColor = 0
     
     private var videoMemory = [UInt8](repeating: 0, count: 32 * 64)
-    private let lightGreen = UIColor(red: 139/255, green: 172/255, blue: 15/255, alpha: 1)
-    private let darkGreen = UIColor(red: 15/255, green: 56/255, blue: 15/255, alpha: 1)
-    private let shadowColor = UIColor(red: 15/255, green: 56/255, blue: 15/255, alpha: 0.5)
-    private let shadowBlur: CGFloat = 3.0
-    private let shadowOffset = CGSize(width: 2, height: 2)
     
     private let colors = [
         ScreenColor(backgroundColor: .white,
@@ -68,17 +65,18 @@ class Chip8DisplayView: UIView, Chip8DisplayDelegate {
     override func draw(_ rect: CGRect) {
         super.draw(rect)
         UIColor.black.setStroke()
-        colors[selectedColor].backgroundColor.setFill()
+        let color = colors[selectedColor]
+        color.backgroundColor.setFill()
         let ctx = UIGraphicsGetCurrentContext()
         ctx?.fill(bounds)
         ctx?.stroke(bounds)
-        colors[selectedColor].foregroundColor.setFill()
+        color.foregroundColor.setFill()
         let w = bounds.size.width / 64
         let h = bounds.size.height / 32
         var i = 0
         ctx?.saveGState()
-        if let shadowColor = colors[selectedColor].shadowColor {
-            ctx?.setShadow(offset: shadowOffset, blur: shadowBlur, color: shadowColor.cgColor)
+        if let shadowColor = color.shadowColor {
+            ctx?.setShadow(offset: color.shadowOffset, blur: color.shadowBlur, color: shadowColor.cgColor)
         }
         for row in 0..<32 {
             for col in 0..<64 {
