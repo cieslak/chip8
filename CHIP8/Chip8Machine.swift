@@ -8,10 +8,6 @@
 import Foundation
 import UIKit
 
-protocol Chip8DisplayDelegate: AnyObject {
-    func update(video: [UInt8])
-}
-
 protocol Chip8Delegate: AnyObject {
     func loadStatusChanged()
 }

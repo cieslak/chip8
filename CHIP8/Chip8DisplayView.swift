@@ -7,14 +7,58 @@
 
 import UIKit
 
+
+protocol Chip8DisplayDelegate: AnyObject {
+    func update(video: [UInt8])
+    var colorChoices: [String] { get }
+}
+
 class Chip8DisplayView: UIView, Chip8DisplayDelegate {
    
+    struct ScreenColor {
+        let backgroundColor: UIColor
+        let foregroundColor: UIColor
+        let shadowColor: UIColor?
+    }
+
+    var selectedColor = 0
+    
     private var videoMemory = [UInt8](repeating: 0, count: 32 * 64)
     private let lightGreen = UIColor(red: 139/255, green: 172/255, blue: 15/255, alpha: 1)
     private let darkGreen = UIColor(red: 15/255, green: 56/255, blue: 15/255, alpha: 1)
     private let shadowColor = UIColor(red: 15/255, green: 56/255, blue: 15/255, alpha: 0.5)
     private let shadowBlur: CGFloat = 3.0
     private let shadowOffset = CGSize(width: 2, height: 2)
+    
+    private let colors = [
+        ScreenColor(backgroundColor: .white,
+                    foregroundColor: .black,
+                    shadowColor: nil),
+        ScreenColor(backgroundColor: UIColor(red: 167/255, green: 154/255, blue: 153/255, alpha: 1),
+                    foregroundColor: UIColor(red: 30/255, green: 2/255, blue: 1/255, alpha: 1),
+                    shadowColor: UIColor(red: 30/255, green: 2/255, blue: 1/255, alpha: 0.5)),
+        ScreenColor(backgroundColor: UIColor(red: 139/255, green: 172/255, blue: 15/255, alpha: 1),
+                    foregroundColor: UIColor(red: 15/255, green: 56/255, blue: 15/255, alpha: 1),
+                    shadowColor: UIColor(red: 15/255, green: 56/255, blue: 15/255, alpha: 0.5)),
+        ScreenColor(backgroundColor: UIColor(red: 243/255, green: 174/255, blue: 61/255, alpha: 1),
+                    foregroundColor: UIColor(red: 158/255, green: 74/255, blue: 27/255, alpha: 1),
+                    shadowColor: UIColor(red: 158/255, green: 74/255, blue: 27/255, alpha: 0.5)),
+        ScreenColor(backgroundColor: UIColor(red: 34/255, green: 55/255, blue: 215/255, alpha: 1),
+                    foregroundColor: UIColor(red: 163/255, green: 173/255, blue: 156/255, alpha: 1),
+                    shadowColor: UIColor(red: 163/255, green: 173/255, blue: 156/255, alpha: 0.5)),
+        ScreenColor(backgroundColor: UIColor(red: 52/255, green: 10/255, blue: 13/255, alpha: 1),
+                    foregroundColor: UIColor(red: 232/255, green: 95/255, blue: 78/255, alpha: 1),
+                    shadowColor: UIColor(red: 232/255, green: 95/255, blue: 78/255, alpha: 0.5))
+    ]
+    
+    let colorChoices = [
+        "Standard",
+        "LCD",
+        "Gameboy",
+        "Autumn",
+        "Blue Backlight",
+        "Reverse Red Backlight"
+    ]
     
     func update(video: [UInt8]) {
         videoMemory = video
@@ -23,15 +67,19 @@ class Chip8DisplayView: UIView, Chip8DisplayDelegate {
     
     override func draw(_ rect: CGRect) {
         super.draw(rect)
-        lightGreen.setFill()
+        UIColor.black.setStroke()
+        colors[selectedColor].backgroundColor.setFill()
         let ctx = UIGraphicsGetCurrentContext()
         ctx?.fill(bounds)
-        darkGreen.setFill()
+        ctx?.stroke(bounds)
+        colors[selectedColor].foregroundColor.setFill()
         let w = bounds.size.width / 64
         let h = bounds.size.height / 32
         var i = 0
         ctx?.saveGState()
-        ctx?.setShadow(offset: shadowOffset, blur: shadowBlur, color: shadowColor.cgColor)
+        if let shadowColor = colors[selectedColor].shadowColor {
+            ctx?.setShadow(offset: shadowOffset, blur: shadowBlur, color: shadowColor.cgColor)
+        }
         for row in 0..<32 {
             for col in 0..<64 {
                 if videoMemory[i] > 0 {

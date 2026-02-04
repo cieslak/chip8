@@ -6,6 +6,7 @@
 //
 import UniformTypeIdentifiers
 import UIKit
+import SwiftUI
 
 class ViewController: UIViewController {
 
@@ -14,9 +15,11 @@ class ViewController: UIViewController {
     @IBOutlet var runButton: UIButton!
     var buttons: [UIButton] =  []
     var isRunning = false
+    @AppStorage("selectedColor") var selectedColor = 0
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        display.selectedColor = self.selectedColor
         chip8.display = display
         chip8.delegate = self
         runButton.setImage(UIImage(systemName: "play.circle.fill"), for: .normal)
@@ -25,20 +28,28 @@ class ViewController: UIViewController {
             button.setTitle(String(i, radix: 16).uppercased(), for: .normal)
             button.tag = i
             button.titleLabel?.font = UIFont.boldSystemFont(ofSize: 32)
+            button.titleLabel?.textColor = .label
+            if (i < 10) {
+                button.backgroundColor = .systemGray3
+            } else {
+                button.backgroundColor = .systemGray
+            }
             button.addTarget(self, action: #selector(buttonDown), for: .touchDown)
             button.addTarget(self, action: #selector(buttonUp), for: [.touchUpInside, .touchDragOutside])
             view.addSubview(button)
             buttons.append(button)
         }
-        let screenWidth = view.bounds.width
+        let screenWidth = view.bounds.width - 10
         let buttonWidth = screenWidth / 4
         var k = 0
         for i in 0..<4 {
             for j in 0..<4 {
                 let button = buttons[k]
-                let x = CGFloat(j) * buttonWidth
-                let y = 300 + CGFloat(i) * buttonWidth
-                button.frame = CGRect(x: x, y: y, width: buttonWidth, height: buttonWidth)
+                let x = floor(CGFloat(j) * buttonWidth + 10)
+                let y = floor(280 + CGFloat(i) * buttonWidth + 10)
+                button.frame = CGRect(x: x, y: y, width: buttonWidth - 10, height: buttonWidth - 10)
+                button.layer.cornerRadius = floor((buttonWidth - 10) / 2 -  1)
+                button.clipsToBounds = true
                 k = k + 1
             }
         }
@@ -95,7 +106,15 @@ extension ViewController: Chip8Delegate {
 }
 
 extension ViewController: SettingsViewControllerDelegate {
-
+    func colorChanged() {
+        display.selectedColor = selectedColor
+        display.setNeedsDisplay()
+    }
+    
+    var colorChoices: [String] {
+        return display.colorChoices
+    }
+    
     var incrementI: Bool {
         get {
             chip8.incrementI
@@ -113,7 +132,6 @@ extension ViewController: SettingsViewControllerDelegate {
             chip8.shiftVXVY = newValue
         }
     }
-
 }
 
 extension ViewController: UIDocumentPickerDelegate {

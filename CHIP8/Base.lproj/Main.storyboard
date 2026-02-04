@@ -115,7 +115,7 @@
                                 <nil key="highlightedColor"/>
                             </label>
                             <switch opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" misplaced="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" on="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Vzv-YP-TEi">
-                                <rect key="frame" x="289" y="102" width="61" height="28"/>
+                                <rect key="frame" x="298" y="102" width="61" height="28"/>
                                 <connections>
                                     <action selector="iSwitchToggledWithSender:" destination="h6j-Jo-SyK" eventType="valueChanged" id="kge-pL-gD0"/>
                                 </connections>
@@ -126,18 +126,32 @@
                                     <action selector="vxSwitchToggledWithSender:" destination="h6j-Jo-SyK" eventType="valueChanged" id="FT8-pe-w2Y"/>
                                 </connections>
                             </switch>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Color Scheme" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="DWo-GA-67d">
+                                <rect key="frame" x="36" y="220" width="108" height="21"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <pickerView contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="U2J-mQ-s8k">
+                                <rect key="frame" x="0.0" y="241" width="393" height="216"/>
+                            </pickerView>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="fQr-01-VR6"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                         <constraints>
                             <constraint firstItem="VPO-I4-2ot" firstAttribute="leading" secondItem="fQr-01-VR6" secondAttribute="leading" constant="36" id="7hB-e2-0oI"/>
                             <constraint firstItem="fQr-01-VR6" firstAttribute="trailing" secondItem="5Ia-TO-dC5" secondAttribute="trailing" constant="36" id="9J3-Bf-KJ4"/>
+                            <constraint firstItem="DWo-GA-67d" firstAttribute="leading" secondItem="fQr-01-VR6" secondAttribute="leading" constant="36" id="C8o-jM-jSW"/>
+                            <constraint firstItem="U2J-mQ-s8k" firstAttribute="trailing" secondItem="fQr-01-VR6" secondAttribute="trailing" id="H4i-Po-JcZ"/>
                             <constraint firstItem="tWG-dd-fiy" firstAttribute="top" secondItem="fQr-01-VR6" secondAttribute="top" constant="36" id="YHm-6G-3Sx"/>
                             <constraint firstItem="tWG-dd-fiy" firstAttribute="leading" secondItem="fQr-01-VR6" secondAttribute="leading" constant="36" id="Zsw-tx-Iqs"/>
                             <constraint firstItem="fQr-01-VR6" firstAttribute="trailing" secondItem="Vzv-YP-TEi" secondAttribute="trailing" constant="36" id="c42-pm-4Xc"/>
                             <constraint firstItem="VPO-I4-2ot" firstAttribute="top" secondItem="tWG-dd-fiy" secondAttribute="bottom" constant="36" id="jNQ-yx-EMy"/>
+                            <constraint firstItem="DWo-GA-67d" firstAttribute="top" secondItem="VPO-I4-2ot" secondAttribute="bottom" constant="36" id="n9C-CA-wMR"/>
+                            <constraint firstItem="U2J-mQ-s8k" firstAttribute="top" secondItem="DWo-GA-67d" secondAttribute="bottom" id="rO9-Se-PuV"/>
                             <constraint firstItem="Vzv-YP-TEi" firstAttribute="centerY" secondItem="tWG-dd-fiy" secondAttribute="centerY" id="sZT-QR-FIk"/>
                             <constraint firstItem="5Ia-TO-dC5" firstAttribute="centerY" secondItem="VPO-I4-2ot" secondAttribute="centerY" id="sc7-Fe-m9c"/>
+                            <constraint firstItem="U2J-mQ-s8k" firstAttribute="leading" secondItem="fQr-01-VR6" secondAttribute="leading" id="yPQ-WX-0ev"/>
                         </constraints>
                     </view>
                     <navigationItem key="navigationItem" title="Settings" id="qsT-B4-ad0">
@@ -148,6 +162,7 @@
                         </barButtonItem>
                     </navigationItem>
                     <connections>
+                        <outlet property="colorPicker" destination="U2J-mQ-s8k" id="a9i-dI-2Ee"/>
                         <outlet property="iSwitch" destination="Vzv-YP-TEi" id="gSq-14-kbz"/>
                         <outlet property="vxSwitch" destination="5Ia-TO-dC5" id="DGL-gG-cRl"/>
                     </connections>
