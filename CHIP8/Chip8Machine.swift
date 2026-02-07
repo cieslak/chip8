@@ -12,6 +12,20 @@ protocol Chip8Delegate: AnyObject {
     func loadStatusChanged()
 }
 
+enum DisplayType {
+    case standard
+    case extended
+    
+    var size: CGSize {
+        switch self {
+        case .standard:
+            return CGSize(width: 64, height: 32)
+        case .extended:
+            return CGSize(width: 128, height: 64)
+        }
+    }
+}
+
 class Chip8Machine {
     
     enum LoadError: Error {
@@ -20,6 +34,12 @@ class Chip8Machine {
     
     weak var display: Chip8DisplayDelegate?
     weak var delegate: Chip8Delegate?
+    var displayType = DisplayType.standard {
+        didSet {
+            video = [UInt8](repeating: 0, count: Int(displayType.size.width * displayType.size.height))
+            display?.set(displayType: displayType)
+        }
+    }
     var shiftVXVY = false
     var incrementI = false
     var didLoad = false
@@ -29,9 +49,10 @@ class Chip8Machine {
     private var i: UInt16 = 0
     private var stack = [UInt16](repeating: 0, count: 16)
     private var sp: UInt8 = 0
-    private var video = [UInt8](repeating: 0, count: 64 * 32)
+    private var video = [UInt8](repeating: 0, count: 32 * 64)
     private var opcode: UInt16 = 0
     private var delayTimer: UInt8 = 0
+    private var hp48 = [UInt8](repeating: 0, count: 8)
     private var soundTimer: UInt8 = 0 {
         willSet {
             if soundTimer == 0 && newValue > 0 {
@@ -61,6 +82,25 @@ class Chip8Machine {
         0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
         0xF0, 0x80, 0xF0, 0x80, 0x80  // F
     ]
+    private let bigFont: [UInt16] = [
+        0xC67C, 0xDECE, 0xF6D6, 0xC6E6, 0x007C, // 0
+        0x3010, 0x30F0, 0x3030, 0x3030, 0x00FC, // 1
+        0xCC78, 0x0CCC, 0x3018, 0xCC60, 0x00FC, // 2
+        0xCC78, 0x0C0C, 0x0C38, 0xCC0C, 0x0078, // 3
+        0x1C0C, 0x6C3C, 0xFECC, 0x0C0C, 0x001E, // 4
+        0xC0FC, 0xC0C0, 0x0CF8, 0xCC0C, 0x0078, // 5
+        0x6038, 0xC0C0, 0xCCF8, 0xCCCC, 0x0078, // 6
+        0xC6FE, 0x06C6, 0x180C, 0x3030, 0x0030, // 7
+        0xCC78, 0xECCC, 0xDC78, 0xCCCC, 0x0078, // 8
+        0xC67C, 0xC6C6, 0x0C7E, 0x3018, 0x0070, // 9
+        0x7830, 0xCCCC, 0xFCCC, 0xCCCC, 0x00CC, // A
+        0x66FC, 0x6666, 0x667C, 0x6666, 0x00FC, // B
+        0x663C, 0xC0C6, 0xC0C0, 0x66C6, 0x003C, // C
+        0x6CF8, 0x6666, 0x6666, 0x6C66, 0x00F8, // D
+        0x62FE, 0x6460, 0x647C, 0x6260, 0x00FE, // E
+        0x66FE, 0x6462, 0x647C, 0x6060, 0x00F0  // F
+    ]
+
     private let startAddress = 0x200
     private let instructionQueue = DispatchQueue(label: "com.chip8.cpu", qos: .userInteractive)
     private var instructionTimer: DispatchSourceTimer?
@@ -73,22 +113,35 @@ class Chip8Machine {
     }
     
     func reset() {
+        displayType = .standard
         registers = [UInt8](repeating: 0, count: 16)
         pc = UInt16(startAddress)
         memory = [UInt8](repeating: 0, count: 4096)
         i = 0
         stack = [UInt16](repeating: 0, count: 16)
         sp = 0
-        video = [UInt8](repeating: 0, count: 64 * 32)
         opcode = 0
         delayTimer = 0
         soundTimer = 0
-        memory.replaceSubrange(0x50...0x9f, with: font)
+        loadFonts()
         didLoad = false
+    }
+    
+    private func loadFonts() {
+        memory.replaceSubrange(0x50...0x9f, with: font)
+        var x = 0xA0
+        for digit in bigFont {
+            let msb = UInt8(digit >> 8)
+            memory[x] = msb
+            let lsb = UInt8(digit & 0x00ff)
+            memory[x + 1] = lsb
+            x = x + 2
+        }
     }
     
     func load(url: URL) throws {
         defer { delegate?.loadStatusChanged() }
+        
         stop()
         reset()
         display?.update(video: video)
@@ -152,6 +205,16 @@ class Chip8Machine {
     private func randomByte() -> UInt8 {
         return UInt8.random(in: 0...255)
     }
+
+    private func op00Cx() {
+        let pixels = Int(opcode & 0x000f)
+        let width = displayType.size.width
+        let block = Int(width) * pixels
+        let slice = Array(video[0..<video.count - block])
+        video = [UInt8](repeating: 0, count: block)
+        video.append(contentsOf: slice)
+        display?.update(video: video)
+    }
     
     private func op00E0() {
         video = [UInt8](repeating: 0, count: 64 * 32)
@@ -160,6 +223,44 @@ class Chip8Machine {
     private func op00EE() {
         sp = sp - 1
         pc = stack[Int(sp)]
+    }
+    
+    private func op00FB() {
+        let w = Int(displayType.size.width)
+        let h = Int(displayType.size.height)
+        var newVideo = [UInt8]()
+        for row in 0..<h {
+            let slice = video[(row * w) ..< w].dropLast(4)
+            newVideo.append(contentsOf: [UInt8](repeating: 0, count: 4))
+            newVideo.append(contentsOf: Array(slice))
+        }
+        video = newVideo
+        display?.update(video: video)
+    }
+    
+    private func op00FC() {
+        let w = Int(displayType.size.width)
+        let h = Int(displayType.size.height)
+        var newVideo = [UInt8]()
+        for row in 0..<h {
+            let slice = video[(row * w)..<(row * w) + w].dropFirst(4)
+            newVideo.append(contentsOf: Array(slice))
+            newVideo.append(contentsOf: [UInt8](repeating: 0, count: 4))
+        }
+        video = newVideo
+        display?.update(video: video)
+    }
+
+    private func op00FD() {
+        pc = pc - 2
+    }
+    
+    private func op00FE() {
+        displayType = .standard
+    }
+    
+    private func op00FF() {
+        displayType = .extended
     }
     
     private func op1nnn() {
@@ -314,19 +415,20 @@ class Chip8Machine {
     private func opDxyn() {
         let x = Int((opcode & 0x0F00)) >> 8
         let y = Int((opcode & 0x00F0)) >> 4
+        let n = Int(opcode & 0x000F)
+        let spriteSize = (n == 0 && displayType == .extended) ? 16 : 8
         let height = Int(opcode & 0x000F)
-        let vx = Int(registers[Int(x)] % 64)
-        let vy = Int(registers[Int(y)] % 32)
+        let displayWidth = Int(displayType.size.width)
+        let displayHeight = Int(displayType.size.height)
+        let vx = Int(registers[Int(x)]) % displayWidth
+        let vy = Int(registers[Int(y)]) % displayHeight
         registers[0xF] = 0
         
         for row in 0..<height {
             let spriteRow = memory[Int(i) + row]
-            for col in 0..<8 {
+            for col in 0..<spriteSize {
                 if spriteRow & (0x80 >> col) != 0 {
-                    if vx + col >= 64 || vy + row >= 32 {
-                        continue
-                    }
-                    let idx = (vx + col + (vy + row) * 64) % (64 * 32)
+                    let idx = (vx + col + (vy + row) * displayWidth) % (displayWidth * displayHeight)
                     if video[idx] == 1 {
                         //print("setting 0xF")
                         registers[0xF] = 1
@@ -397,6 +499,12 @@ class Chip8Machine {
         i = 0x50 + UInt16(5 * digit)
     }
     
+    private func opFx30() {
+        let vx = Int((opcode & 0x0F00) >> 8)
+        let digit = registers[vx]
+        i = 0x50 + UInt16(10 * digit + 80)
+    }
+    
     private func opFx33() {
         let vx = Int((opcode & 0x0F00) >> 8)
         var value = registers[vx]
@@ -429,6 +537,20 @@ class Chip8Machine {
             i = i + UInt16(vx) + 1
         }
     }
+    
+    private func opFx75() {
+        let vx = Int((opcode & 0x0F00) >> 8)
+        for j in 0...vx {
+            hp48[j] = registers[j]
+        }
+    }
+    
+    private func opFx85() {
+        let vx = Int((opcode & 0x0F00) >> 8)
+        for j in 0...vx {
+            registers[j] = hp48[j]
+        }
+    }
 
     private func printScreen() {
         for (idx, pixel) in video.enumerated() {
@@ -451,10 +573,26 @@ class Chip8Machine {
         let prefix = (opcode & 0xf000) >> 12
         switch prefix {
         case 0x0:
-            if opcode == 0x00E0 {
+            let suffix = opcode & 0x00FF
+            switch suffix {
+            case 0x00c0...0x00CF:
+                op00Cx()
+            case 0xe0:
                 op00E0()
-            } else if opcode == 0x00EE {
+            case 0xee:
                 op00EE()
+            case 0xfb:
+                op00FB()
+            case 0xfc:
+                op00FC()
+            case 0xfd:
+                op00FD()
+            case 0xfe:
+                op00FE()
+            case 0xff:
+                op00FF()
+            default:
+                print("unimplemented 0x00 opcode")
             }
         case 0x1:
             op1nnn()
@@ -529,11 +667,17 @@ class Chip8Machine {
                 opFx1E()
             case 0x29:
                 opFx29()
+            case 0x30:
+                opFx30()
             case 0x33:
                 opFx33()
             case 0x55:
                 opFx55()
             case 0x65:
+                opFx65()
+            case 0x75:
+                opFx55()
+            case 0x85:
                 opFx65()
             default:
                 print("unimplemented 0xF opcode")

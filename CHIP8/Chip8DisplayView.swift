@@ -10,6 +10,7 @@ import UIKit
 
 protocol Chip8DisplayDelegate: AnyObject {
     func update(video: [UInt8])
+    func set(displayType: DisplayType)
     var colorChoices: [String] { get }
 }
 
@@ -26,6 +27,7 @@ class Chip8DisplayView: UIView, Chip8DisplayDelegate {
     var selectedColor = 0
     
     private var videoMemory = [UInt8](repeating: 0, count: 32 * 64)
+    private var displayType = DisplayType.standard
     
     private let colors = [
         ScreenColor(backgroundColor: .white,
@@ -62,6 +64,11 @@ class Chip8DisplayView: UIView, Chip8DisplayDelegate {
         setNeedsDisplay()
     }
     
+    func set(displayType: DisplayType) {
+        self.displayType = displayType
+        setNeedsDisplay()
+    }
+    
     override func draw(_ rect: CGRect) {
         super.draw(rect)
         UIColor.black.setStroke()
@@ -71,15 +78,16 @@ class Chip8DisplayView: UIView, Chip8DisplayDelegate {
         ctx?.fill(bounds)
         ctx?.stroke(bounds)
         color.foregroundColor.setFill()
-        let w = bounds.size.width / 64
-        let h = bounds.size.height / 32
+        let w = bounds.size.width / displayType.size.width
+        let h = bounds.size.height / displayType.size.height
         var i = 0
         ctx?.saveGState()
         if let shadowColor = color.shadowColor {
             ctx?.setShadow(offset: color.shadowOffset, blur: color.shadowBlur, color: shadowColor.cgColor)
         }
-        for row in 0..<32 {
-            for col in 0..<64 {
+        for row in 0..<Int(displayType.size.height) {
+            for col in 0..<Int(displayType.size.width) {
+                if i >= videoMemory.count { return }
                 if videoMemory[i] > 0 {
                     let x = w * CGFloat(col)
                     let y = h * CGFloat(row)
