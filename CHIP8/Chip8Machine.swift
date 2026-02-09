@@ -36,7 +36,6 @@ class Chip8Machine {
     weak var delegate: Chip8Delegate?
     var displayType = DisplayType.standard {
         didSet {
-            video = [UInt8](repeating: 0, count: Int(displayType.size.width * displayType.size.height))
             display?.set(displayType: displayType)
         }
     }
@@ -49,7 +48,7 @@ class Chip8Machine {
     private var i: UInt16 = 0
     private var stack = [UInt16](repeating: 0, count: 16)
     private var sp: UInt8 = 0
-    private var video = [UInt8](repeating: 0, count: 32 * 64)
+    private var video = [UInt8](repeating: 0, count: 128 * 64)
     private var opcode: UInt16 = 0
     private var delayTimer: UInt8 = 0
     private var hp48 = [UInt8](repeating: 0, count: 8)
@@ -217,7 +216,7 @@ class Chip8Machine {
     }
     
     private func op00E0() {
-        video = [UInt8](repeating: 0, count: 64 * 32)
+        video = [UInt8](repeating: 0, count: 128 * 64)
     }
     
     private func op00EE() {
@@ -509,13 +508,13 @@ class Chip8Machine {
         let vx = Int((opcode & 0x0F00) >> 8)
         var value = registers[vx]
         // Ones-place
-        memory[Int(i) + 2] = value % 10;
+        memory[Int(i) + 2] = value % 10
         value /= 10;
         // Tens-place
-        memory[Int(i) + 1] = value % 10;
+        memory[Int(i) + 1] = value % 10
         value /= 10;
         // Hundreds-place
-        memory[Int(i)] = value % 10;
+        memory[Int(i)] = value % 10
     }
     
     private func opFx55() {
@@ -630,7 +629,7 @@ class Chip8Machine {
             case 0xE:
                 op8xye()
             default:
-                print("unimplemented 0x8 opcode")
+                print("unimplemented 0x8 opcode: \(String(opcode, radix: 16))")
             }
         case 0x9:
             op9xy0()
@@ -650,7 +649,7 @@ class Chip8Machine {
             case 0xA1:
                 opExa1()
             default:
-                print("unimplemented 0xe opcode")
+                print("unimplemented 0xe opcode: \(String(opcode, radix: 16))")
             }
         case 0xF:
             let suffix = opcode & 0x00FF
@@ -680,10 +679,10 @@ class Chip8Machine {
             case 0x85:
                 opFx65()
             default:
-                print("unimplemented 0xF opcode")
+                print("unimplemented 0xF opcode: \(String(opcode, radix: 16))")
             }
         default:
-            print("unimplemented opcode: \(opcode)")
+            print("unimplemented opcode: \(String(opcode, radix: 16))")
         }
     }
 }
