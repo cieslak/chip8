@@ -139,7 +139,8 @@ class Chip8Machine {
     }
     
     func load(url: URL) throws {
-        defer { delegate?.loadStatusChanged() }
+        defer {
+            delegate?.loadStatusChanged() }
         stop()
         reset()
         display?.update(video: video)
@@ -147,6 +148,7 @@ class Chip8Machine {
         delegate?.loadStatusChanged()
         if url.startAccessingSecurityScopedResource() {
             let data = try Data(contentsOf: url)
+            url.stopAccessingSecurityScopedResource()
             var bytes = Array<UInt8>(repeating: 0, count: data.count / MemoryLayout<UInt8>.stride)
             guard bytes.count < 4096 - 0x200 else {
                 throw Chip8Machine.LoadError.fileTooLarge
@@ -154,7 +156,6 @@ class Chip8Machine {
             _ = bytes.withUnsafeMutableBytes { data.copyBytes(to: $0) }
             self.memory.replaceSubrange(startAddress..<startAddress + bytes.count, with: bytes)
             didLoad = true
-            url.stopAccessingSecurityScopedResource()
         }
     }
     
