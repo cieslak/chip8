@@ -230,7 +230,7 @@ class Chip8Machine {
         let h = Int(displayType.size.height)
         var newVideo = [UInt8]()
         for row in 0..<h {
-            let slice = video[(row * w) ..< w].dropLast(4)
+            let slice = video[(row * w)..<(row * w) + w].dropLast(4)
             newVideo.append(contentsOf: [UInt8](repeating: 0, count: 4))
             newVideo.append(contentsOf: Array(slice))
         }
@@ -592,7 +592,7 @@ class Chip8Machine {
             case 0xff:
                 op00FF()
             default:
-                print("unimplemented 0x00 opcode")
+                print("unimplemented 0x00 opcode: \(String(opcode, radix: 16))")
             }
         case 0x1:
             op1nnn()
