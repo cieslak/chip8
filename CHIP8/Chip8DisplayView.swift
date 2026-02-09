@@ -60,12 +60,16 @@ class Chip8DisplayView: UIView, Chip8DisplayDelegate {
     
     func update(video: [UInt8]) {
         videoMemory = video
-        setNeedsDisplay()
+        DispatchQueue.main.async {
+            self.setNeedsDisplay()
+        }
     }
     
     func set(displayType: DisplayType) {
         self.displayType = displayType
-        setNeedsDisplay()
+        DispatchQueue.main.async {
+            self.setNeedsDisplay()
+        }
     }
     
     override func draw(_ rect: CGRect) {
