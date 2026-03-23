@@ -678,9 +678,9 @@ class Chip8Machine {
             case 0x65:
                 opFx65()
             case 0x75:
-                opFx55()
+                opFx75()
             case 0x85:
-                opFx65()
+                opFx85()
             default:
                 print("unimplemented 0xF opcode: \(String(opcode, radix: 16))")
             }
