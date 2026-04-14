@@ -42,17 +42,17 @@ class Chip8Machine {
     var shiftVXVY = false
     var incrementI = false
     var didLoad = false
-    private var registers = [UInt8](repeating: 0, count: 16)
-    private var pc: UInt16 = 0
-    private var memory = [UInt8](repeating: 0, count: 4096)
-    private var i: UInt16 = 0
-    private var stack = [UInt16](repeating: 0, count: 16)
-    private var sp: UInt8 = 0
-    private var video = [UInt8](repeating: 0, count: 128 * 64)
-    private var opcode: UInt16 = 0
-    private var delayTimer: UInt8 = 0
-    private var hp48 = [UInt8](repeating: 0, count: 8)
-    private var soundTimer: UInt8 = 0 {
+    var registers = [UInt8](repeating: 0, count: 16)
+    var pc: UInt16 = 0
+    var memory = [UInt8](repeating: 0, count: 4096)
+    var i: UInt16 = 0
+    var stack = [UInt16](repeating: 0, count: 16)
+    var sp: UInt8 = 0
+    var video = [UInt8](repeating: 0, count: 128 * 64)
+    var opcode: UInt16 = 0
+    var delayTimer: UInt8 = 0
+    var hp48 = [UInt8](repeating: 0, count: 8)
+    var soundTimer: UInt8 = 0 {
         willSet {
             if soundTimer == 0 && newValue > 0 {
                 try? toneGenerator?.start()
@@ -61,8 +61,8 @@ class Chip8Machine {
             }
         }
     }
-    private var keyboard = [Bool](repeating: false, count: 16)
-    private var keyDown = false
+    var keyboard = [Bool](repeating: false, count: 16)
+    var keyDown = false
     private let font: [UInt8] = [
         0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
         0x20, 0x60, 0x20, 0x20, 0x70, // 1
@@ -122,8 +122,19 @@ class Chip8Machine {
         opcode = 0
         delayTimer = 0
         soundTimer = 0
+        video = [UInt8](repeating: 0, count: 128 * 64)
+        keyboard = [Bool](repeating: false, count: 16)
+        keyDown = false
+        hp48 = [UInt8](repeating: 0, count: 8)
         loadFonts()
         didLoad = false
+    }
+
+    /// Loads raw program bytes into memory at the start address, resetting all state.
+    /// Use this in tests to set up the machine without going through the file-loading path.
+    func loadProgram(_ bytes: [UInt8]) {
+        reset()
+        memory.replaceSubrange(startAddress..<startAddress + bytes.count, with: bytes)
     }
     
     private func loadFonts() {
@@ -371,12 +382,9 @@ class Chip8Machine {
     private func op8xy7() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let vy = Int((opcode & 0x00F0) >> 4)
-        registers[vx] = registers[Int(vy)] &- registers[vx]
-        if registers[vy] > registers[vx] {
-            registers[0xF] = 1
-        } else {
-            registers[0xF] = 0
-        }
+        let (result, overflow) = registers[vy].subtractingReportingOverflow(registers[vx])
+        registers[vx] = result
+        registers[0xF] = overflow ? 0 : 1
     }
     
     private func op8xye() {
@@ -424,24 +432,22 @@ class Chip8Machine {
         let displayHeight = Int(displayType.size.height)
         let vx = Int(registers[Int(x)]) % displayWidth
         let vy = Int(registers[Int(y)]) % displayHeight
-        registers[0xF] = 0
-        
+        var collision = false
+
         for row in 0..<height {
             let spriteRow = memory[Int(i) + row]
             for col in 0..<spriteSize {
                 if spriteRow & (0x80 >> col) != 0 {
                     let idx = (vx + col + (vy + row) * displayWidth) % (displayWidth * displayHeight)
                     if video[idx] == 1 {
-                        //print("setting 0xF")
-                        registers[0xF] = 1
+                        collision = true
                     }
-                    //print("\(idx) was \(video[idx])")
                     video[idx] ^= 1
-                    //print("\(idx) now \(video[idx])")
-
                 }
             }
         }
+
+        registers[0xF] = collision ? 1 : 0
     }
     
     private func opEx9e() {
@@ -567,7 +573,7 @@ class Chip8Machine {
         }
     }
     
-    private func step() {
+    func step() {
         let highByte = UInt16(memory[Int(pc)])
         let lowByte = UInt16(memory[Int(pc + 1)])
         opcode = UInt16(highByte) << 8 | lowByte

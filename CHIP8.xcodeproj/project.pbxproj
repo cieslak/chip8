@@ -6,8 +6,19 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		F1000003CAFE000000000003 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D353B29D2F2BE8B400612961 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D353B2A42F2BE8B400612961;
+			remoteInfo = CHIP8;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		D353B2A52F2BE8B400612961 /* CHIP8.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CHIP8.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		F1000001CAFE000000000001 /* CHIP8Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CHIP8Tests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -29,10 +40,22 @@
 			path = CHIP8;
 			sourceTree = "<group>";
 		};
+		F1000008CAFE000000000008 /* CHIP8Tests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = CHIP8Tests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		D353B2A22F2BE8B400612961 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F1000006CAFE000000000006 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -46,6 +69,7 @@
 			isa = PBXGroup;
 			children = (
 				D353B2A72F2BE8B400612961 /* CHIP8 */,
+				F1000008CAFE000000000008 /* CHIP8Tests */,
 				D353B2A62F2BE8B400612961 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -54,6 +78,7 @@
 			isa = PBXGroup;
 			children = (
 				D353B2A52F2BE8B400612961 /* CHIP8.app */,
+				F1000001CAFE000000000001 /* CHIP8Tests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -83,6 +108,29 @@
 			productReference = D353B2A52F2BE8B400612961 /* CHIP8.app */;
 			productType = "com.apple.product-type.application";
 		};
+		F1000002CAFE000000000002 /* CHIP8Tests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F100000BCAFE00000000000B /* Build configuration list for PBXNativeTarget "CHIP8Tests" */;
+			buildPhases = (
+				F1000005CAFE000000000005 /* Sources */,
+				F1000006CAFE000000000006 /* Frameworks */,
+				F1000007CAFE000000000007 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F1000004CAFE000000000004 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				F1000008CAFE000000000008 /* CHIP8Tests */,
+			);
+			name = CHIP8Tests;
+			packageProductDependencies = (
+			);
+			productName = CHIP8Tests;
+			productReference = F1000001CAFE000000000001 /* CHIP8Tests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -95,6 +143,10 @@
 				TargetAttributes = {
 					D353B2A42F2BE8B400612961 = {
 						CreatedOnToolsVersion = 26.1.1;
+					};
+					F1000002CAFE000000000002 = {
+						CreatedOnToolsVersion = 26.1.1;
+						TestTargetID = D353B2A42F2BE8B400612961;
 					};
 				};
 			};
@@ -113,12 +165,20 @@
 			projectRoot = "";
 			targets = (
 				D353B2A42F2BE8B400612961 /* CHIP8 */,
+				F1000002CAFE000000000002 /* CHIP8Tests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		D353B2A32F2BE8B400612961 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F1000007CAFE000000000007 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -135,7 +195,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F1000005CAFE000000000005 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		F1000004CAFE000000000004 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D353B2A42F2BE8B400612961 /* CHIP8 */;
+			targetProxy = F1000003CAFE000000000003 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		D353B2B92F2BE8B500612961 /* Debug */ = {
@@ -323,6 +398,48 @@
 			};
 			name = Release;
 		};
+		F1000009CAFE000000000009 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = BHA5P69VBJ;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.superfile.CHIP8Tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CHIP8.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/CHIP8";
+			};
+			name = Debug;
+		};
+		F100000ACAFE00000000000A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = BHA5P69VBJ;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.superfile.CHIP8Tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CHIP8.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/CHIP8";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -340,6 +457,15 @@
 			buildConfigurations = (
 				D353B2B92F2BE8B500612961 /* Debug */,
 				D353B2BA2F2BE8B500612961 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F100000BCAFE00000000000B /* Build configuration list for PBXNativeTarget "CHIP8Tests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F1000009CAFE000000000009 /* Debug */,
+				F100000ACAFE00000000000A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
