@@ -1,21 +1,15 @@
-//
-//  File.swift
-//  CHIP8
-//
-//  Created by Chris Cieslak on 1/29/26.
-//
-
 import Foundation
 import UIKit
 
-protocol Chip8Delegate: AnyObject {
+@MainActor
+protocol Chip8Delegate: AnyObject, Sendable {
     func loadStatusChanged()
 }
 
-enum DisplayType {
+nonisolated enum DisplayType: Sendable {
     case standard
     case extended
-    
+
     var size: CGSize {
         switch self {
         case .standard:
@@ -26,19 +20,15 @@ enum DisplayType {
     }
 }
 
-class Chip8Machine {
-    
+actor Chip8Machine {
+
     enum LoadError: Error {
         case fileTooLarge
     }
-    
-    weak var display: Chip8DisplayDelegate?
-    weak var delegate: Chip8Delegate?
-    var displayType = DisplayType.standard {
-        didSet {
-            display?.set(displayType: displayType)
-        }
-    }
+
+    nonisolated(unsafe) weak var display: (any Chip8DisplayDelegate)?
+    nonisolated(unsafe) weak var delegate: (any Chip8Delegate)?
+    var displayType = DisplayType.standard
     var shiftVXVY = false
     var incrementI = false
     var didLoad = false
@@ -52,15 +42,7 @@ class Chip8Machine {
     var opcode: UInt16 = 0
     var delayTimer: UInt8 = 0
     var hp48 = [UInt8](repeating: 0, count: 8)
-    var soundTimer: UInt8 = 0 {
-        willSet {
-            if soundTimer == 0 && newValue > 0 {
-                try? toneGenerator?.start()
-            } else if newValue == 0 {
-                toneGenerator?.stop()
-            }
-        }
-    }
+    var soundTimer: UInt8 = 0
     var keyboard = [Bool](repeating: false, count: 16)
     var keyDown = false
     private let font: [UInt8] = [
@@ -101,16 +83,14 @@ class Chip8Machine {
     ]
 
     private let startAddress = 0x200
-    private let instructionQueue = DispatchQueue(label: "com.chip8.cpu", qos: .userInteractive)
-    private var instructionTimer: DispatchSourceTimer?
-    private var displayLink: CADisplayLink?
+    private var cpuTask: Task<Void, Never>?
     private let toneGenerator: ToneGenerator?
-    
+
     init() {
         self.toneGenerator = try? ToneGenerator()
         self.pc = UInt16(startAddress)
     }
-    
+
     func reset() {
         displayType = .standard
         registers = [UInt8](repeating: 0, count: 16)
@@ -122,6 +102,7 @@ class Chip8Machine {
         opcode = 0
         delayTimer = 0
         soundTimer = 0
+        toneGenerator?.stop()
         video = [UInt8](repeating: 0, count: 128 * 64)
         keyboard = [Bool](repeating: false, count: 16)
         keyDown = false
@@ -130,13 +111,11 @@ class Chip8Machine {
         didLoad = false
     }
 
-    /// Loads raw program bytes into memory at the start address, resetting all state.
-    /// Use this in tests to set up the machine without going through the file-loading path.
     func loadProgram(_ bytes: [UInt8]) {
         reset()
         memory.replaceSubrange(startAddress..<startAddress + bytes.count, with: bytes)
     }
-    
+
     private func loadFonts() {
         memory.replaceSubrange(0x50...0x9f, with: font)
         var x = 0xA0
@@ -148,15 +127,13 @@ class Chip8Machine {
             x = x + 2
         }
     }
-    
+
     func load(url: URL) throws {
-        defer {
-            delegate?.loadStatusChanged() }
         stop()
         reset()
-        display?.update(video: video)
+        sendDisplayUpdate(video)
+        sendLoadStatusChanged()
         didLoad = false
-        delegate?.loadStatusChanged()
         if url.startAccessingSecurityScopedResource() {
             let data = try Data(contentsOf: url)
             url.stopAccessingSecurityScopedResource()
@@ -168,55 +145,110 @@ class Chip8Machine {
             self.memory.replaceSubrange(startAddress..<startAddress + bytes.count, with: bytes)
             didLoad = true
         }
+        sendLoadStatusChanged()
     }
-    
+
     func start() {
-        if !didLoad { return }
-        instructionTimer = DispatchSource.makeTimerSource(queue: instructionQueue)
-        instructionTimer?.schedule(deadline: .now(), repeating: .milliseconds(2))
-        instructionTimer?.setEventHandler {
-            self.step()
+        guard didLoad else { return }
+        cpuTask = Task { [weak self] in
+            guard let self else { return }
+            await self.runLoop()
         }
-        instructionTimer?.resume()
-        createDisplayLink()
     }
-    
+
     func stop() {
-        instructionTimer?.cancel()
-        instructionTimer = nil
-        displayLink?.remove(from: .current, forMode: .default)
-        displayLink = nil
+        cpuTask?.cancel()
+        cpuTask = nil
         reset()
     }
-    
+
     func set(key: Int, state: Bool) {
-        instructionQueue.async {
-            self.keyboard[key] = state
+        keyboard[key] = state
+    }
+
+    func setDisplay(_ display: any Chip8DisplayDelegate) {
+        self.display = display
+    }
+
+    func setDelegate(_ delegate: any Chip8Delegate) {
+        self.delegate = delegate
+    }
+
+    func setShiftVXVY(_ value: Bool) {
+        shiftVXVY = value
+    }
+
+    func setIncrementI(_ value: Bool) {
+        incrementI = value
+    }
+
+    func setDisplayType(_ value: DisplayType) {
+        displayType = value
+    }
+
+    // MARK: - Cross-isolation notifications
+
+    nonisolated private func sendDisplayUpdate(_ video: sending [UInt8]) {
+        let display = self.display
+        Task { @MainActor in
+            display?.update(video: video)
         }
     }
-    
-    private func createDisplayLink() {
-        displayLink = CADisplayLink(target: self, selector: #selector(updateUI))
-        displayLink?.add(to: .current, forMode: .default)
+
+    nonisolated private func sendDisplayTypeChanged(_ type: sending DisplayType) {
+        let display = self.display
+        Task { @MainActor in
+            display?.set(displayType: type)
+        }
     }
-    
-    @objc private func updateUI(displayLink: CADisplayLink) {
-        self.display?.update(video: self.video)
-        self.updateTimers()
+
+    nonisolated private func sendLoadStatusChanged() {
+        let delegate = self.delegate
+        Task { @MainActor in
+            delegate?.loadStatusChanged()
+        }
     }
-    
-    
+
+    // MARK: - CPU loop
+
+    private func runLoop() async {
+        var lastFrameTime = ContinuousClock.now
+        while !Task.isCancelled {
+            step()
+
+            let now = ContinuousClock.now
+            if now - lastFrameTime >= .milliseconds(16) {
+                lastFrameTime = now
+                updateTimers()
+                sendDisplayUpdate(video)
+            }
+
+            try? await Task.sleep(for: .milliseconds(2))
+        }
+    }
+
     private func updateTimers() {
         if soundTimer > 0 {
-            soundTimer = soundTimer - 1
+            if soundTimer == 1 {
+                toneGenerator?.stop()
+            }
+            soundTimer -= 1
         }
         if delayTimer > 0 {
-            delayTimer = delayTimer - 1
+            delayTimer -= 1
         }
     }
-    
+
+    private func updateSoundState(oldValue: UInt8, newValue: UInt8) {
+        if oldValue == 0 && newValue > 0 {
+            try? toneGenerator?.start()
+        } else if newValue == 0 && oldValue > 0 {
+            toneGenerator?.stop()
+        }
+    }
+
     private func randomByte() -> UInt8 {
-        return UInt8.random(in: 0...255)
+        UInt8.random(in: 0...255)
     }
 
     private func op00Cx() {
@@ -226,18 +258,17 @@ class Chip8Machine {
         let slice = Array(video[0..<video.count - block])
         video = [UInt8](repeating: 0, count: block)
         video.append(contentsOf: slice)
-        display?.update(video: video)
     }
-    
+
     private func op00E0() {
         video = [UInt8](repeating: 0, count: 128 * 64)
     }
-    
+
     private func op00EE() {
         sp = sp - 1
         pc = stack[Int(sp)]
     }
-    
+
     private func op00FB() {
         let w = Int(displayType.size.width)
         let h = Int(displayType.size.height)
@@ -248,9 +279,8 @@ class Chip8Machine {
             newVideo.append(contentsOf: Array(slice))
         }
         video = newVideo
-        display?.update(video: video)
     }
-    
+
     private func op00FC() {
         let w = Int(displayType.size.width)
         let h = Int(displayType.size.height)
@@ -261,33 +291,33 @@ class Chip8Machine {
             newVideo.append(contentsOf: [UInt8](repeating: 0, count: 4))
         }
         video = newVideo
-        display?.update(video: video)
     }
 
     private func op00FD() {
         pc = pc - 2
     }
-    
+
     private func op00FE() {
         displayType = .standard
+        sendDisplayTypeChanged(displayType)
     }
-    
+
     private func op00FF() {
         displayType = .extended
+        sendDisplayTypeChanged(displayType)
     }
-    
+
     private func op1nnn() {
-        //print("loading opcode \(String(opcode, radix: 16)) jump to \(String(opcode & 0x0fff, radix: 16))")
         pc = opcode & 0x0fff
     }
-    
+
     private func op2nnn() {
         let address = opcode & 0x0fff
         stack[Int(sp)] = pc
         sp = sp + 1
         pc = address
     }
-    
+
     private func op3xkk() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let byte = opcode & 0x00FF
@@ -295,7 +325,7 @@ class Chip8Machine {
             pc = pc + 2
         }
     }
-    
+
     private func op4xkk() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let byte = opcode & 0x00FF
@@ -303,7 +333,7 @@ class Chip8Machine {
             pc = pc + 2
         }
     }
-    
+
     private func op5xy0() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let vy = Int((opcode & 0x00F0) >> 4)
@@ -311,47 +341,46 @@ class Chip8Machine {
             pc = pc + 2
         }
     }
-    
+
     private func op6xkk() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let byte = opcode & 0x00FF
-        //print("loading opcode \(String(opcode, radix: 16)) \(String(byte, radix: 16)) into vx \(vx)")
         registers[vx] = UInt8(byte)
     }
-    
+
     private func op7xkk() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let byte = opcode & 0x00FF
         registers[vx] = registers[vx] &+ UInt8(byte)
     }
-    
+
     private func op8xy0() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let vy = Int((opcode & 0x00F0) >> 4)
         registers[vx] = registers[vy]
     }
-    
+
     private func op8xy1() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let vy = Int((opcode & 0x00F0) >> 4)
         registers[vx] |= registers[vy]
         registers[0xF] = 0
     }
-    
+
     private func op8xy2() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let vy = Int((opcode & 0x00F0) >> 4)
         registers[vx] &= registers[vy]
         registers[0xF] = 0
     }
-    
+
     private func op8xy3() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let vy = Int((opcode & 0x00F0) >> 4)
         registers[vx] ^= registers[vy]
         registers[0xF] = 0
     }
-    
+
     private func op8xy4() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let vy = Int((opcode & 0x00F0) >> 4)
@@ -359,7 +388,7 @@ class Chip8Machine {
         registers[vx] = result
         registers[0xF] = overflow ? 1 : 0
     }
-    
+
     private func op8xy5() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let vy = Int((opcode & 0x00F0) >> 4)
@@ -367,7 +396,7 @@ class Chip8Machine {
         registers[Int(vx)] = result
         registers[0xF] = overflow ? 0 : 1
     }
-    
+
     private func op8xy6() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let vy = Int((opcode & 0x00F0) >> 4)
@@ -378,7 +407,7 @@ class Chip8Machine {
         registers[vx] >>= 1
         registers[0xF] = flag
     }
-    
+
     private func op8xy7() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let vy = Int((opcode & 0x00F0) >> 4)
@@ -386,7 +415,7 @@ class Chip8Machine {
         registers[vx] = result
         registers[0xF] = overflow ? 0 : 1
     }
-    
+
     private func op8xye() {
         let vx = Int((opcode & 0x0F00)) >> 8
         let vy = Int((opcode & 0x00F0) >> 4)
@@ -394,10 +423,10 @@ class Chip8Machine {
             registers[vx] = registers[vy]
         }
         let flag = (registers[vx] & 0x80) >> 7
-        registers[vx] <<= 1;
+        registers[vx] <<= 1
         registers[0xF] = flag
     }
-    
+
     private func op9xy0() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let vy = Int((opcode & 0x00F0) >> 4)
@@ -405,29 +434,29 @@ class Chip8Machine {
             pc = pc + 2
         }
     }
-    
+
     private func opAnnn() {
-        //print("opcode \(String(opcode, radix: 16)) loading \(String(opcode & 0x0fff, radix: 16)) into i")
         i = opcode & 0x0fff
     }
-    
+
     private func opBnnn() {
         let address = opcode & 0x0fff
         pc = UInt16(registers[0]) + address
     }
-    
+
     private func opCxkk() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let byte = opcode & 0x00FF
         registers[vx] = randomByte() & UInt8(byte)
     }
-    
+
     private func opDxyn() {
         let x = Int((opcode & 0x0F00)) >> 8
         let y = Int((opcode & 0x00F0)) >> 4
         let n = Int(opcode & 0x000F)
-        let spriteSize = (n == 0 && displayType == .extended) ? 16 : 8
-        let height = Int(opcode & 0x000F)
+        let isLargeSprite = n == 0 && displayType == .extended
+        let spriteSize = isLargeSprite ? 16 : 8
+        let height = isLargeSprite ? 16 : n
         let displayWidth = Int(displayType.size.width)
         let displayHeight = Int(displayType.size.height)
         let vx = Int(registers[Int(x)]) % displayWidth
@@ -449,7 +478,7 @@ class Chip8Machine {
 
         registers[0xF] = collision ? 1 : 0
     }
-    
+
     private func opEx9e() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let key = Int(registers[vx])
@@ -457,7 +486,7 @@ class Chip8Machine {
             pc = pc + 2
         }
     }
-    
+
     private func opExa1() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let key = Int(registers[vx])
@@ -465,12 +494,12 @@ class Chip8Machine {
             pc = pc + 2
         }
     }
-    
+
     private func opFx07() {
         let vx = Int((opcode & 0x0F00) >> 8)
         registers[vx] = delayTimer
     }
-    
+
     private func opFx0a() {
         let vx = Int((opcode & 0x0F00) >> 8)
         if let idx = keyboard.firstIndex(of: true) {
@@ -485,47 +514,46 @@ class Chip8Machine {
             }
         }
     }
-    
+
     private func opFx15() {
         let vx = Int((opcode & 0x0F00) >> 8)
         delayTimer = registers[vx]
     }
-    
+
     private func opFx18() {
         let vx = Int((opcode & 0x0F00) >> 8)
+        let oldValue = soundTimer
         soundTimer = registers[vx]
+        updateSoundState(oldValue: oldValue, newValue: soundTimer)
     }
-    
+
     private func opFx1E() {
         let vx = Int((opcode & 0x0F00) >> 8)
         i = i + UInt16(registers[vx])
     }
-    
+
     private func opFx29() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let digit = registers[vx]
         i = 0x50 + UInt16(5 * digit)
     }
-    
+
     private func opFx30() {
         let vx = Int((opcode & 0x0F00) >> 8)
         let digit = registers[vx]
         i = 0x50 + UInt16(10 * digit + 80)
     }
-    
+
     private func opFx33() {
         let vx = Int((opcode & 0x0F00) >> 8)
         var value = registers[vx]
-        // Ones-place
         memory[Int(i) + 2] = value % 10
-        value /= 10;
-        // Tens-place
+        value /= 10
         memory[Int(i) + 1] = value % 10
-        value /= 10;
-        // Hundreds-place
+        value /= 10
         memory[Int(i)] = value % 10
     }
-    
+
     private func opFx55() {
         let vx = Int((opcode & 0x0F00) >> 8)
         for j in 0...vx {
@@ -535,7 +563,7 @@ class Chip8Machine {
             i = i + UInt16(vx) + 1
         }
     }
-    
+
     private func opFx65() {
         let vx = Int((opcode & 0x0F00) >> 8)
         for j in 0...vx {
@@ -545,14 +573,14 @@ class Chip8Machine {
             i = i + UInt16(vx) + 1
         }
     }
-    
+
     private func opFx75() {
         let vx = Int((opcode & 0x0F00) >> 8)
         for j in 0...vx {
             hp48[j] = registers[j]
         }
     }
-    
+
     private func opFx85() {
         let vx = Int((opcode & 0x0F00) >> 8)
         for j in 0...vx {
@@ -560,19 +588,6 @@ class Chip8Machine {
         }
     }
 
-    private func printScreen() {
-        for (idx, pixel) in video.enumerated() {
-            if pixel == 1 {
-                print("*", terminator: "")
-            } else {
-                print("_", terminator: "")
-            }
-            if idx != 0 && idx % 64 == 0 {
-                print("")
-            }
-        }
-    }
-    
     func step() {
         let highByte = UInt16(memory[Int(pc)])
         let lowByte = UInt16(memory[Int(pc + 1)])
@@ -694,4 +709,16 @@ class Chip8Machine {
             print("unimplemented opcode: \(String(opcode, radix: 16))")
         }
     }
+
+    // MARK: - Test helpers
+
+    func setRegister(_ index: Int, _ value: UInt8) { registers[index] = value }
+    func setKeyboard(_ index: Int, _ value: Bool) { keyboard[index] = value }
+    func setMemoryByte(_ address: Int, _ value: UInt8) { memory[address] = value }
+    func setVideo(_ index: Int, _ value: UInt8) { video[index] = value }
+    func setI(_ value: UInt16) { i = value }
+    func setSP(_ value: UInt8) { sp = value }
+    func setStack(_ index: Int, _ value: UInt16) { stack[index] = value }
+    func setDelayTimer(_ value: UInt8) { delayTimer = value }
+    func setKeyDown(_ value: Bool) { keyDown = value }
 }

@@ -1,21 +1,14 @@
-//
-//  Chip8DisplayView.swift
-//  CHIP8
-//
-//  Created by Chris Cieslak on 1/30/26.
-//
-
 import UIKit
 
-
-protocol Chip8DisplayDelegate: AnyObject {
+@MainActor
+protocol Chip8DisplayDelegate: AnyObject, Sendable {
     func update(video: [UInt8])
     func set(displayType: DisplayType)
     var colorChoices: [String] { get }
 }
 
 class Chip8DisplayView: UIView, Chip8DisplayDelegate {
-   
+
     struct ScreenColor {
         let name: String
         let backgroundColor: UIColor
@@ -26,10 +19,10 @@ class Chip8DisplayView: UIView, Chip8DisplayDelegate {
     }
 
     var selectedColor = 0
-    
+
     private var videoMemory = [UInt8](repeating: 0, count: 32 * 64)
     private var displayType = DisplayType.standard
-    
+
     private let colors = [
         ScreenColor(name: "Standard",
                     backgroundColor: .white,
@@ -55,23 +48,19 @@ class Chip8DisplayView: UIView, Chip8DisplayDelegate {
                     foregroundColor: UIColor(red: 232/255, green: 95/255, blue: 78/255, alpha: 1),
                     shadowColor: UIColor(red: 232/255, green: 95/255, blue: 78/255, alpha: 0.5))
     ]
-    
-    lazy var colorChoices = colors.map { $0.name } 
-    
+
+    lazy var colorChoices = colors.map { $0.name }
+
     func update(video: [UInt8]) {
         videoMemory = video
-        DispatchQueue.main.async {
-            self.setNeedsDisplay()
-        }
+        setNeedsDisplay()
     }
-    
+
     func set(displayType: DisplayType) {
         self.displayType = displayType
-        DispatchQueue.main.async {
-            self.setNeedsDisplay()
-        }
+        setNeedsDisplay()
     }
-    
+
     override func draw(_ rect: CGRect) {
         super.draw(rect)
         UIColor.black.setStroke()

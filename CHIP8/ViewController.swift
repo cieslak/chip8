@@ -1,9 +1,3 @@
-//
-//  ViewController.swift
-//  CHIP8
-//
-//  Created by Chris Cieslak on 1/29/26.
-//
 import UniformTypeIdentifiers
 import UIKit
 import SwiftUI
@@ -13,15 +7,18 @@ class ViewController: UIViewController {
     let chip8 = Chip8Machine()
     @IBOutlet var display: Chip8DisplayView!
     @IBOutlet var runButton: UIButton!
-    var buttons: [UIButton] =  []
+    var buttons: [UIButton] = []
     var isRunning = false
     @AppStorage("selectedColor") var selectedColor = 0
+
+    private var cachedShiftVXVY = false
+    private var cachedIncrementI = false
 
     override func viewDidLoad() {
         super.viewDidLoad()
         display.selectedColor = self.selectedColor
-        chip8.display = display
-        chip8.delegate = self
+        Task { await chip8.setDisplay(display) }
+        Task { await chip8.setDelegate(self) }
         runButton.setImage(UIImage(systemName: "play.circle.fill"), for: .normal)
         for i in [1, 2, 3, 12, 4, 5, 6, 13, 7, 8, 9, 14, 10, 0, 11, 15] {
             let button = UIButton(type: .roundedRect)
@@ -48,30 +45,32 @@ class ViewController: UIViewController {
                 let x = floor(CGFloat(j) * buttonWidth + 10)
                 let y = floor(280 + CGFloat(i) * buttonWidth + 10)
                 button.frame = CGRect(x: x, y: y, width: buttonWidth - 10, height: buttonWidth - 10)
-                button.layer.cornerRadius = floor((buttonWidth - 10) / 2 -  1)
+                button.layer.cornerRadius = floor((buttonWidth - 10) / 2 - 1)
                 button.clipsToBounds = true
                 k = k + 1
             }
         }
     }
-    
+
     @objc func buttonDown(sender: UIButton) {
-        chip8.set(key: sender.tag, state: true)
+        Task { await chip8.set(key: sender.tag, state: true) }
     }
-    
+
     @objc func buttonUp(sender: UIButton) {
-        chip8.set(key: sender.tag, state: false)
+        Task { await chip8.set(key: sender.tag, state: false) }
     }
-    
+
     @IBAction func runTapped(sender: UIButton) {
         if !isRunning {
             runButton.setImage(UIImage(systemName: "stop.circle.fill"), for: .normal)
-            chip8.start()
+            Task { await chip8.start() }
             isRunning = true
         } else {
             runButton.setImage(UIImage(systemName: "play.circle.fill"), for: .normal)
-            chip8.stop()
-            chip8.reset()
+            Task {
+                await chip8.stop()
+                await chip8.reset()
+            }
             runButton.isEnabled = false
             isRunning = false
         }
@@ -83,12 +82,15 @@ class ViewController: UIViewController {
         picker.delegate = self
         present(picker, animated: true)
     }
-    
+
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        runButton.isEnabled = chip8.didLoad
+        Task {
+            let loaded = await chip8.didLoad
+            runButton.isEnabled = loaded
+        }
     }
-    
+
     override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
         super.prepare(for: segue, sender: sender)
         if let destination = segue.destination as? UINavigationController, let root = destination.topViewController as? SettingsViewController {
@@ -101,7 +103,10 @@ extension ViewController: Chip8Delegate {
     func loadStatusChanged() {
         isRunning = false
         runButton.setImage(UIImage(systemName: "play.circle.fill"), for: .normal)
-        runButton.isEnabled = chip8.didLoad
+        Task {
+            let loaded = await chip8.didLoad
+            runButton.isEnabled = loaded
+        }
     }
 }
 
@@ -110,38 +115,35 @@ extension ViewController: SettingsViewControllerDelegate {
         display.selectedColor = selectedColor
         display.setNeedsDisplay()
     }
-    
+
     var colorChoices: [String] {
-        return display.colorChoices
+        display.colorChoices
     }
-    
+
     var incrementI: Bool {
-        get {
-            chip8.incrementI
-        }
+        get { cachedIncrementI }
         set {
-            chip8.incrementI = newValue
+            cachedIncrementI = newValue
+            Task { await chip8.setIncrementI(newValue) }
         }
     }
-    
+
     var shiftVXVY: Bool {
-        get {
-            chip8.shiftVXVY
-        }
+        get { cachedShiftVXVY }
         set {
-            chip8.shiftVXVY = newValue
+            cachedShiftVXVY = newValue
+            Task { await chip8.setShiftVXVY(newValue) }
         }
     }
 }
 
 extension ViewController: UIDocumentPickerDelegate {
-    
-    public func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
-            guard let url = urls.first else {
-                return
-            }
-        try? chip8.load(url: url)
-        }
-    
-}
 
+    public func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+        guard let url = urls.first else {
+            return
+        }
+        Task { try await chip8.load(url: url) }
+    }
+
+}
